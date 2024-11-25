@@ -6,6 +6,7 @@ using Game.Common;
 using Game.Tools;
 using Unity.Collections;
 using Unity.Entities;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using Quaternion = UnityEngine.Quaternion;
 
@@ -20,8 +21,7 @@ namespace FreeRotation.Systems
         private EntityQuery m_ObjectDefinitionQuery;
         private ObjectToolSystem m_ObjectToolSystem;
         private ILog m_Log;
-        private Unity.Mathematics.Random m_Random;
-        private ToolSystem m_ToolSystem;
+        public static Vector3 RotationDelta; // Stores delta of rotation which is to be applied next frame
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RotationSystem"/> class.
@@ -52,32 +52,61 @@ namespace FreeRotation.Systems
             }
         }
 
+        public void SetRotationDelta(float delta)
+        {
+            if (Mod.m_Setting.RotationAxis == RotationAxis.X)
+            {
+                RotationDelta = new Vector3(delta, 0, 0);
+            }
+            else if (Mod.m_Setting.RotationAxis == RotationAxis.Y)
+            {
+                RotationDelta = new Vector3(0, delta, 0);
+            }
+            else if (Mod.m_Setting.RotationAxis == RotationAxis.Z)
+            {
+                RotationDelta = new Vector3(0, 0, delta);
+            }
+        }
 
         public void OnFreelyRotateLeft(InputActionPhase phase)
         {
             m_Log.Info("Phase: " + phase);
-            /*if (phase == InputActionPhase.Performed)
-            {
-                ForceUpdate();
-                m_Log.Info($"Previous Variation: {m_RandomSeed}");
-            }*/
         }
 
         public void OnFreelyRotateRight(InputActionPhase phase)
         {
-            /*if (phase == InputActionPhase.Performed)
+
+        }
+
+        public void OnDegreeRotateLeft(InputActionPhase phase)
+        {
+            if (phase == InputActionPhase.Performed)
             {
+                SetRotationDelta(-Mod.m_Setting.RotationDegrees);
                 ForceUpdate();
-                m_Log.Info($"Next Variation: {m_RandomSeed}");
-            }*/
+            }
+        }
+
+        public void OnDegreeRotateRight(InputActionPhase phase)
+        {
+            if (phase == InputActionPhase.Performed)
+            {
+                SetRotationDelta(Mod.m_Setting.RotationDegrees);
+                ForceUpdate();
+            }
         }
 
 
         /// <inheritdoc/>
         protected override void OnUpdate()
         {
+            if (RotationDelta == Vector3.zero)
+            {
+                return;
+            }
+
             m_ObjectDefinitionQuery = SystemAPI.QueryBuilder()
-                .WithAllRW<CreationDefinition>()
+                .WithAllRW<CreationDefinition, ObjectDefinition>()
                 .WithAll<Updated>()
                 .WithNone<Deleted, Overridden>()
                 .Build();
@@ -92,9 +121,15 @@ namespace FreeRotation.Systems
                     entities.Dispose();
                     return;
                 }
-
-                currentObjectDefinition.m_Rotation = Quaternion.Euler(0, m_Random.NextFloat(0, 360), 0);
+                //var rotation = currentObjectDefinition.m_Rotation; //= Quaternion.Euler(RotationDelta);
+                currentObjectDefinition.m_Rotation *= Quaternion.Euler(RotationDelta);
+                RotationDelta = Vector3.zero;
                 EntityManager.SetComponentData(entity, currentObjectDefinition);
+                var field = typeof(ObjectToolSystem).GetField("m_RotationModified", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (field != null)
+                {
+                    field.SetValue(m_ObjectToolSystem, true);
+                }
             }
 
             entities.Dispose();

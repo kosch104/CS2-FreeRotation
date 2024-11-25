@@ -16,8 +16,12 @@ namespace FreeRotation
         public static Setting m_Setting;
         public static ProxyAction FreeRotateLeftAction;
         public static ProxyAction FreeRotateRightAction;
+        public static ProxyAction DegreeRotateLeftAction;
+        public static ProxyAction DegreeRotateRightAction;
         public const string kFreeRotateLeftName = "FreeRotateLeftBinding";
         public const string kFreeRotateRightName = "FreeRotateRightBinding";
+        public const string kDegreeRotateLeftName = "DegreeRotateLeftBinding";
+        public const string kDegreeRotateRightName = "DegreeRotateRightBinding";
 
         public void OnLoad(UpdateSystem updateSystem)
         {
@@ -35,15 +39,25 @@ namespace FreeRotation
 
             FreeRotateLeftAction = m_Setting.GetAction(kFreeRotateLeftName);
             FreeRotateRightAction = m_Setting.GetAction(kFreeRotateRightName);
+            DegreeRotateLeftAction = m_Setting.GetAction(kDegreeRotateLeftName);
+            DegreeRotateRightAction = m_Setting.GetAction(kDegreeRotateRightName);
 
             FreeRotateLeftAction.shouldBeEnabled = true;
             FreeRotateRightAction.shouldBeEnabled = true;
+            DegreeRotateLeftAction.shouldBeEnabled = true;
+            DegreeRotateRightAction.shouldBeEnabled = true;
 
             FreeRotateLeftAction.onInteraction += (_, phase) =>
                 RotationSystem.Instance.OnFreelyRotateLeft(phase);
 
-            FreeRotateLeftAction.onInteraction += (_, phase) =>
+            FreeRotateRightAction.onInteraction += (_, phase) =>
                 RotationSystem.Instance.OnFreelyRotateRight(phase);
+
+            DegreeRotateLeftAction.onInteraction += (_, phase) =>
+                RotationSystem.Instance.OnDegreeRotateLeft(phase);
+
+            DegreeRotateRightAction.onInteraction += (_, phase) =>
+                RotationSystem.Instance.OnDegreeRotateRight(phase);
 
             AssetDatabase.global.LoadSettings(nameof(FreeRotation), m_Setting, new Setting(this));
 
